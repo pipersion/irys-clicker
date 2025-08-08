@@ -309,7 +309,8 @@ async def advance_character(advancement: CharacterAdvancement):
                     "upgrade_level": 0,  # Reset upgrades
                     "energy": new_character_config["max_energy"],  # Full energy at new level
                     "last_energy_update": datetime.utcnow(),
-                    "last_passive_income": datetime.utcnow()
+                    "last_passive_income": datetime.utcnow(),
+                    "last_save": datetime.utcnow()
                 }
             }
         )
@@ -320,6 +321,136 @@ async def advance_character(advancement: CharacterAdvancement):
             "new_character_name": new_character_config["name"],
             "new_character_multiplier": new_character_config["multiplier"],
             "new_max_energy": new_character_config["max_energy"]
+        }
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/api/save")
+async def manual_save(save_data: PlayerCreate):
+    """Manual save - force update last_save timestamp"""
+    try:
+        player = get_or_create_player(save_data.player_id)
+        player = update_energy(player)
+        player = update_passive_income(player)
+        
+        # Update last_save timestamp
+        now = datetime.utcnow()
+        db.players.update_one(
+            {"player_id": save_data.player_id},
+            {
+                "$set": {
+                    "last_save": now
+                }
+            }
+        )
+        
+        return {
+            "success": True,
+            "message": "Game saved successfully",
+            "save_time": now.isoformat(),
+            "save_time_formatted": now.strftime("%Y-%m-%d %H:%M:%S UTC")
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/export/{player_id}")
+async def export_save_data(player_id: str):
+    """Export player save data"""
+    try:
+        player = get_or_create_player(player_id)
+        player = update_energy(player)
+        player = update_passive_income(player)
+        
+        # Create exportable save data
+        save_data = {
+            "player_id": player["player_id"],
+            "points": player["points"],
+            "energy": player["energy"],
+            "character_level": player["character_level"],
+            "upgrade_level": player["upgrade_level"],
+            "last_energy_update": player["last_energy_update"].isoformat(),
+            "last_passive_income": player["last_passive_income"].isoformat(),
+            "last_save": player.get("last_save", datetime.utcnow()).isoformat(),
+            "export_timestamp": datetime.utcnow().isoformat(),
+            "game_version": "1.0"
+        }
+        
+        return {
+            "success": True,
+            "save_data": save_data,
+            "export_info": {
+                "export_time": datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S UTC"),
+                "character_name": CHARACTER_LEVELS[player["character_level"]]["name"],
+                "total_progress": f"{player['points']} points, Level {player['character_level']}"
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+class ImportSaveData(BaseModel):
+    player_id: str
+    save_data: dict
+
+@app.post("/api/import")
+async def import_save_data(import_data: ImportSaveData):
+    """Import player save data"""
+    try:
+        save_data = import_data.save_data
+        
+        # Validate save data structure
+        required_fields = ['points', 'energy', 'character_level', 'upgrade_level']
+        missing_fields = [field for field in required_fields if field not in save_data]
+        
+        if missing_fields:
+            raise HTTPException(status_code=400, detail=f"Invalid save data: missing fields {missing_fields}")
+        
+        # Validate data ranges
+        if save_data['character_level'] < 1 or save_data['character_level'] > 5:
+            raise HTTPException(status_code=400, detail="Invalid character level")
+        
+        if save_data['energy'] < 0 or save_data['energy'] > CHARACTER_LEVELS[save_data['character_level']]['max_energy']:
+            raise HTTPException(status_code=400, detail="Invalid energy value")
+        
+        if save_data['points'] < 0 or save_data['upgrade_level'] < 0:
+            raise HTTPException(status_code=400, detail="Invalid points or upgrade level")
+        
+        # Parse timestamps
+        now = datetime.utcnow()
+        try:
+            last_energy_update = datetime.fromisoformat(save_data.get('last_energy_update', now.isoformat()))
+            last_passive_income = datetime.fromisoformat(save_data.get('last_passive_income', now.isoformat()))
+        except:
+            last_energy_update = now
+            last_passive_income = now
+        
+        # Import the save data
+        db.players.update_one(
+            {"player_id": import_data.player_id},
+            {
+                "$set": {
+                    "points": save_data['points'],
+                    "energy": save_data['energy'],
+                    "character_level": save_data['character_level'],
+                    "upgrade_level": save_data['upgrade_level'],
+                    "last_energy_update": last_energy_update,
+                    "last_passive_income": last_passive_income,
+                    "last_save": now
+                }
+            },
+            upsert=True
+        )
+        
+        return {
+            "success": True,
+            "message": "Save data imported successfully",
+            "imported_data": {
+                "points": save_data['points'],
+                "character_level": save_data['character_level'],
+                "character_name": CHARACTER_LEVELS[save_data['character_level']]["name"],
+                "upgrade_level": save_data['upgrade_level']
+            }
         }
     except HTTPException:
         raise
