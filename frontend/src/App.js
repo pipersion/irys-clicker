@@ -214,6 +214,8 @@ function App() {
   const handleUpgrade = async () => {
     if (!playerData || playerData.points < playerData.next_upgrade_cost) return;
     
+    setSaveStatus('saving');
+    
     try {
       const response = await fetch(`${API_BASE_URL}/api/upgrade`, {
         method: 'POST',
@@ -235,11 +237,15 @@ function App() {
           upgrade_level: result.new_upgrade_level,
           points_per_click: result.new_points_per_click
         }));
+        setSaveStatus('saved');
+        showNotification('Upgrade purchased successfully!');
         // Refresh full data to get new upgrade cost
         fetchPlayerData();
       }
     } catch (error) {
       console.error('Error purchasing upgrade:', error);
+      setSaveStatus('error');
+      showNotification('Failed to purchase upgrade', 5000);
     }
   };
 
