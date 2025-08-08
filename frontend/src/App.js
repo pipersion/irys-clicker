@@ -23,6 +23,133 @@ function App() {
   const [importData, setImportData] = useState('');
   const [notification, setNotification] = useState('');
 
+  // Show notification
+  const showNotification = (message, duration = 3000) => {
+    setNotification(message);
+    setTimeout(() => setNotification(''), duration);
+  };
+
+  // Auto-save to local storage
+  const saveToLocalStorage = (data) => {
+    try {
+      localStorage.setItem(`clicker_game_${playerId}`, JSON.stringify({
+        ...data,
+        saved_at: new Date().toISOString()
+      }));
+    } catch (error) {
+      console.error('Failed to save to local storage:', error);
+    }
+  };
+
+  // Load from local storage
+  const loadFromLocalStorage = () => {
+    try {
+      const saved = localStorage.getItem(`clicker_game_${playerId}`);
+      if (saved) {
+        return JSON.parse(saved);
+      }
+    } catch (error) {
+      console.error('Failed to load from local storage:', error);
+    }
+    return null;
+  };
+
+  // Manual save
+  const handleManualSave = async () => {
+    setSaveStatus('saving');
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ player_id: playerId }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setSaveStatus('saved');
+        showNotification('Game saved successfully!');
+        
+        // Update player data to get new save time
+        fetchPlayerData();
+      } else {
+        setSaveStatus('error');
+        showNotification('Failed to save game', 5000);
+      }
+    } catch (error) {
+      console.error('Error saving:', error);
+      setSaveStatus('error');
+      showNotification('Failed to save game', 5000);
+    }
+  };
+
+  // Export save data
+  const handleExport = async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/export/${playerId}`);
+      if (response.ok) {
+        const result = await response.json();
+        setExportData(JSON.stringify(result.save_data, null, 2));
+        setShowExportDialog(true);
+        showNotification('Save data exported successfully!');
+      }
+    } catch (error) {
+      console.error('Error exporting:', error);
+      showNotification('Failed to export save data', 5000);
+    }
+  };
+
+  // Import save data
+  const handleImport = async () => {
+    try {
+      const saveData = JSON.parse(importData);
+      const response = await fetch(`${API_BASE_URL}/api/import`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          player_id: playerId,
+          save_data: saveData
+        }),
+      });
+      
+      if (response.ok) {
+        const result = await response.json();
+        setShowImportDialog(false);
+        setImportData('');
+        showNotification('Save data imported successfully!');
+        
+        // Refresh player data
+        fetchPlayerData();
+      } else {
+        const error = await response.json();
+        showNotification(`Import failed: ${error.detail}`, 5000);
+      }
+    } catch (error) {
+      console.error('Error importing:', error);
+      showNotification('Invalid save data format', 5000);
+    }
+  };
+
+  // Copy export data to clipboard
+  const copyToClipboard = async () => {
+    try {
+      await navigator.clipboard.writeText(exportData);
+      showNotification('Save data copied to clipboard!');
+    } catch (error) {
+      // Fallback for browsers that don't support clipboard API
+      const textArea = document.createElement('textarea');
+      textArea.value = exportData;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      showNotification('Save data copied to clipboard!');
+    }
+  };
+
   // Fetch player data
   const fetchPlayerData = async () => {
     try {
@@ -30,6 +157,9 @@ function App() {
       if (response.ok) {
         const data = await response.json();
         setPlayerData(data);
+        
+        // Auto-save to local storage
+        saveToLocalStorage(data);
       }
     } catch (error) {
       console.error('Error fetching player data:', error);
