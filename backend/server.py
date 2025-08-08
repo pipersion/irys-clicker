@@ -267,7 +267,8 @@ async def purchase_upgrade(upgrade: UpgradePurchase):
             {
                 "$set": {
                     "points": new_points,
-                    "upgrade_level": new_upgrade_level
+                    "upgrade_level": new_upgrade_level,
+                    "last_save": datetime.utcnow()
                 }
             }
         )
