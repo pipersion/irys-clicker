@@ -306,14 +306,100 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-100" onClick={handleClick}>
+      {/* Notification */}
+      {notification && (
+        <div className="notification">
+          {notification}
+        </div>
+      )}
+      
       <div className="container mx-auto px-4 py-8 max-w-4xl font-inter">
         {/* Header */}
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold text-gray-800 mb-2">Clicker Game</h1>
-          <div className="text-6xl font-bold text-gray-900 mb-2" style={{color: '#51FED6'}}>
-            {playerData?.points_formatted || '0'}
+          <div className="flex justify-between items-start mb-4">
+            <div></div>
+            <div className="flex-1">
+              <h1 className="text-4xl font-bold text-gray-800 mb-2">Clicker Game</h1>
+              <div className="text-6xl font-bold text-gray-900 mb-2" style={{color: '#51FED6'}}>
+                {playerData?.points_formatted || '0'}
+              </div>
+              <div className="text-lg text-gray-600">Points</div>
+            </div>
+            
+            {/* Save Status and Controls */}
+            <div className="flex flex-col items-end space-y-2">
+              <div className="flex items-center space-x-2 text-sm text-gray-600">
+                {saveStatus === 'saving' && (
+                  <>
+                    <div className="w-3 h-3 border-2 border-gray-300 border-t-cyan-500 rounded-full animate-spin"></div>
+                    <span>Saving...</span>
+                  </>
+                )}
+                {saveStatus === 'saved' && (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-green-500" />
+                    <span>Saved</span>
+                  </>
+                )}
+                {saveStatus === 'error' && (
+                  <>
+                    <span className="w-4 h-4 bg-red-500 rounded-full"></span>
+                    <span>Error</span>
+                  </>
+                )}
+              </div>
+              
+              {playerData && (
+                <div className="text-xs text-gray-500">
+                  <Clock className="w-3 h-3 inline mr-1" />
+                  Last save: {new Date(playerData.last_save).toLocaleTimeString()}
+                </div>
+              )}
+              
+              {/* Save Controls */}
+              <div className="flex space-x-1">
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleManualSave();
+                  }}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs px-2 py-1"
+                >
+                  <Save className="w-3 h-3 mr-1" />
+                  Save
+                </Button>
+                
+                <Button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleExport();
+                  }}
+                  size="sm"
+                  variant="outline"
+                  className="text-xs px-2 py-1"
+                >
+                  <Download className="w-3 h-3 mr-1" />
+                  Export
+                </Button>
+                
+                <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+                  <DialogTrigger asChild>
+                    <Button
+                      onClick={(e) => e.stopPropagation()}
+                      size="sm"
+                      variant="outline"
+                      className="text-xs px-2 py-1"
+                    >
+                      <Upload className="w-3 h-3 mr-1" />
+                      Import
+                    </Button>
+                  </DialogTrigger>
+                </Dialog>
+              </div>
+            </div>
           </div>
-          <div className="text-lg text-gray-600">Points</div>
         </div>
 
         {/* Main Game Area */}
