@@ -221,7 +221,8 @@ async def click(action: ClickAction):
             {
                 "$set": {
                     "points": new_points,
-                    "energy": new_energy
+                    "energy": new_energy,
+                    "last_save": datetime.utcnow()
                 }
             }
         )
