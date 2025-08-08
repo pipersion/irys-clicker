@@ -576,6 +576,74 @@ function App() {
             </Card>
           </TabsContent>
         </Tabs>
+        
+        {/* Export Dialog */}
+        <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Export Save Data</DialogTitle>
+              <DialogDescription>
+                Copy this data and save it somewhere safe. You can use it to import your progress later.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Textarea
+                value={exportData}
+                readOnly
+                className="min-h-48 font-mono text-xs"
+                placeholder="Save data will appear here..."
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={copyToClipboard}
+                style={{backgroundColor: '#51FED6'}}
+                className="hover:opacity-90"
+              >
+                Copy to Clipboard
+              </Button>
+              <Button variant="outline" onClick={() => setShowExportDialog(false)}>
+                Close
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        {/* Import Dialog */}
+        <Dialog open={showImportDialog} onOpenChange={setShowImportDialog}>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Import Save Data</DialogTitle>
+              <DialogDescription>
+                Paste your exported save data below. This will replace your current progress!
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <Textarea
+                value={importData}
+                onChange={(e) => setImportData(e.target.value)}
+                className="min-h-48 font-mono text-xs"
+                placeholder="Paste your save data here..."
+              />
+            </div>
+            <DialogFooter>
+              <Button
+                onClick={handleImport}
+                disabled={!importData.trim()}
+                style={{backgroundColor: importData.trim() ? '#51FED6' : undefined}}
+                className="hover:opacity-90"
+              >
+                Import Save Data
+              </Button>
+              <Button variant="outline" onClick={() => {
+                setShowImportDialog(false);
+                setImportData('');
+              }}>
+                Cancel
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
     </div>
   );
