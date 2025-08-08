@@ -253,6 +253,8 @@ function App() {
   const handleAdvancement = async () => {
     if (!playerData || !playerData.can_advance) return;
     
+    setSaveStatus('saving');
+    
     try {
       const response = await fetch(`${API_BASE_URL}/api/advance`, {
         method: 'POST',
@@ -263,11 +265,15 @@ function App() {
       });
       
       if (response.ok) {
+        setSaveStatus('saved');
+        showNotification('Character advanced successfully!');
         // Refresh all data after advancement
         fetchPlayerData();
       }
     } catch (error) {
       console.error('Error advancing character:', error);
+      setSaveStatus('error');
+      showNotification('Failed to advance character', 5000);
     }
   };
 
