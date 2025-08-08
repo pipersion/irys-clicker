@@ -176,6 +176,8 @@ function App() {
     setClickAnimation(true);
     setTimeout(() => setClickAnimation(false), 200);
     
+    setSaveStatus('saving');
+    
     try {
       const response = await fetch(`${API_BASE_URL}/api/click`, {
         method: 'POST',
@@ -193,9 +195,18 @@ function App() {
           points_formatted: result.new_points_formatted,
           energy: result.new_energy
         }));
+        setSaveStatus('saved');
+        
+        // Auto-save to local storage
+        saveToLocalStorage({
+          ...playerData,
+          points: result.new_points,
+          energy: result.new_energy
+        });
       }
     } catch (error) {
       console.error('Error clicking:', error);
+      setSaveStatus('error');
     }
   };
 
