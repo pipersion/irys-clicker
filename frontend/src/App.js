@@ -16,6 +16,12 @@ function App() {
   const [loading, setLoading] = useState(true);
   const [clickAnimation, setClickAnimation] = useState(false);
   const [playerId] = useState('player-' + Math.random().toString(36).substr(2, 9));
+  const [saveStatus, setSaveStatus] = useState('saved'); // 'saving', 'saved', 'error'
+  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [showImportDialog, setShowImportDialog] = useState(false);
+  const [exportData, setExportData] = useState('');
+  const [importData, setImportData] = useState('');
+  const [notification, setNotification] = useState('');
 
   // Fetch player data
   const fetchPlayerData = async () => {
