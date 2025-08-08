@@ -169,6 +169,9 @@ async def get_player(player_id: str):
         # Calculate energy regeneration time
         energy_regen_seconds = (character_config["max_energy"] - player["energy"]) * 10
         
+        # Get last save info
+        last_save = player.get("last_save", player.get("last_energy_update", datetime.utcnow()))
+        
         return {
             "player_id": player["player_id"],
             "points": player["points"],
@@ -185,7 +188,9 @@ async def get_player(player_id: str):
             "advancement_cost": character_config.get("advancement_cost"),
             "advancement_cost_formatted": format_number(character_config.get("advancement_cost", 0)) if character_config.get("advancement_cost") else None,
             "can_advance": player["character_level"] < 5 and player["points"] >= character_config.get("advancement_cost", float('inf')),
-            "energy_regen_seconds": energy_regen_seconds
+            "energy_regen_seconds": energy_regen_seconds,
+            "last_save": last_save.isoformat(),
+            "last_save_formatted": last_save.strftime("%Y-%m-%d %H:%M:%S UTC")
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
