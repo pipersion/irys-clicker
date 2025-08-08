@@ -12,10 +12,12 @@ import time
 app = FastAPI()
 
 # CORS setup
+allowed_origins_env = os.environ.get('ALLOWED_ORIGINS', '*')
+allowed_origins = [o.strip() for o in allowed_origins_env.split(',') if o.strip()] or ['*']
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
+    allow_origins=allowed_origins,
+    allow_credentials=False if '*' in allowed_origins else True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -62,21 +64,22 @@ def format_number(num):
         return f"{num/1000000000000:.1f}T"
 
 def get_upgrade_cost(level):
-    """Calculate upgrade cost: 100 → 2,500 → 25,000... (10x multiplier progression)"""
+    """Calculate upgrade cost progression: 100 → 2,500 → 25,000 → ... (10x after the first step)"""
     if level == 0:
         return 100
-    return int(100 * (2.5 ** level))
+    # From level 1 onward, costs scale by 10x each level starting from 2,500
+    return int(2500 * (10 ** (level - 1)))  # e.g., level 1: 2,500; level 2: 25,000; etc.
 
 def calculate_points_per_click(upgrade_level):
-    """Calculate points per click based on upgrade level (10% rule)"""
+    """Calculate points per click based on upgrade level (10% rule) using integer math"""
     if upgrade_level == 0:
         return 1
     
     total_points = 0
     for i in range(upgrade_level):
         cost = get_upgrade_cost(i)
-        total_points += cost * 0.1  # 10% of cost becomes points per click
-    return total_points
+        total_points += cost // 10  # 10% of cost becomes points per click (integer)
+    return int(total_points)
 
 def get_or_create_player(player_id: str):
     """Get existing player or create new one"""

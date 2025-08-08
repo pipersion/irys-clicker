@@ -15,7 +15,17 @@ function App() {
   const [playerData, setPlayerData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [clickAnimation, setClickAnimation] = useState(false);
-  const [playerId] = useState('player-' + Math.random().toString(36).substr(2, 9));
+  const [playerId, setPlayerId] = useState(() => {
+    try {
+      const existing = localStorage.getItem('clicker_game_player_id');
+      if (existing) return existing;
+      const newId = 'player-' + Math.random().toString(36).substr(2, 9);
+      localStorage.setItem('clicker_game_player_id', newId);
+      return newId;
+    } catch {
+      return 'player-' + Math.random().toString(36).substr(2, 9);
+    }
+  });
   const [saveStatus, setSaveStatus] = useState('saved'); // 'saving', 'saved', 'error'
   const [showExportDialog, setShowExportDialog] = useState(false);
   const [showImportDialog, setShowImportDialog] = useState(false);
@@ -163,6 +173,11 @@ function App() {
       }
     } catch (error) {
       console.error('Error fetching player data:', error);
+      // Try to hydrate from local storage on network error
+      const cached = loadFromLocalStorage();
+      if (cached) {
+        setPlayerData(cached);
+      }
     } finally {
       setLoading(false);
     }
